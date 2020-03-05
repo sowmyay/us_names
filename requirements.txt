@@ -1,0 +1,11 @@
+pandas
+numpy
+jupyterlab
+ipywidgets
+bokeh
+matplotlib
+scikit-learn
+torch
+tensorboard
+tqdm
+geopandas
