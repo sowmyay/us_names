@@ -24,6 +24,8 @@ COPY . .
 
 EXPOSE 8080
 
+EXPOSE 6006
+
 # When docker container is built, this is the first command that will be executed
 ENTRYPOINT ["/usr/src/app/bin/names"]
 #Cmd command can't be used to build the docker image

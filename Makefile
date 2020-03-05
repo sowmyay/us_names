@@ -18,4 +18,9 @@ run:
 
 r: run
 
-.PHONY: install i run r update u
+tensorboard:
+	@docker run -it --rm -p 6006:6006 -v $(datadir):/data tensorflow/tensorflow:2.0.1-py3 tensorboard --bind_all --logdir /data/runs
+
+t:tensorboard
+
+.PHONY: install i run r update u tensorboard t

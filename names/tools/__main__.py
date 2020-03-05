@@ -27,11 +27,11 @@ train.set_defaults(main=names.tools.train.main)
 predict = subcmd.add_parser("predict", help="Predict model", formatter_class=Formatter)
 predict.add_argument("--model_type", type=str, choices=("gender-rnn", "gender-bayes", "generate-rnn"),
                      default="gender-bayes")
-predict.add_argument("--model", type=Path, help="file to save trained model to")
 predict.add_argument("--num-workers", type=int, default=0, help="number of parallel workers")
 predict.add_argument("--batch-size", type=int, default=64, help="number of chunks per batch")
 predict.add_argument("--data", type=Path, help="Path to directory containing all the US name files")
-predict.add_argument("--checkpoint", type=str, required=False, help="path to a model checkpoint (to retrain)")
+predict.add_argument("--checkpoint", type=Path, required=False, help="path to a model checkpoint")
+predict.add_argument("--input", type=str, required=True, help="Make prediction on this input")
 
 predict.set_defaults(main=names.tools.predict.main)
 

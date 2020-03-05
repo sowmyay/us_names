@@ -1,0 +1,1 @@
+./bin/names predict --data /data --batch-size 4 --model_type "gender-rnn" --num-workers 4 --checkpoint checkpoints/GCRNN/checkpoint-00053-of-00100.pth --input "Patrick"

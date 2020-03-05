@@ -7,9 +7,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader, random_split
 
 from tqdm import tqdm
-from ngRNN.models import RNN
-from ngRNN.datasets import RGDataset
-from ngRNN.tools.preprocess import preprocess
+from gcRNN.models import GCRNN
+from gcRNN.datasets import GCDataset
+from gcRNN.tools.preprocess import preprocess
 
 
 learning_rate = 0.005
@@ -24,31 +24,26 @@ def train_step(rnn, criterion, device, dataloader, dataset, optimizer, writer):
     global train_counter
     running_loss = 0.0
     batch = 1
-    for state, name, target in tqdm(dataloader, desc="train", unit="batch"):
-        state.to(device)
+    for gender, name in tqdm(dataloader, desc="train", unit="batch"):
+        gender.to(device)
         name.to(device)
-        target.to(device)
 
-        # target.unsqueeze_(-1)
-        hidden = rnn.initHidden(state.size(0))
+        hidden = rnn.initHidden(gender.size(0))
 
         optimizer.zero_grad()
 
-        loss = 0
-
         for i in range(name.size(1)):
-            output, hidden = rnn(state, name[:, i], hidden)
-            l = criterion(output.squeeze(1), target[:, i])
-            loss += l
+            output, hidden = rnn(name[:, i], hidden)
+        loss = criterion(output.squeeze(1), gender.squeeze(1))
 
         loss.backward()
         optimizer.step()
-        running_loss += loss.item() * state.size(0)
+        running_loss += loss.item() * gender.size(0)
 
         if train_counter % 100 == 0:
-            writer.add_scalar("Loss/train", running_loss/ batch * state.size(0), train_counter)
+            writer.add_scalar("Loss/train", running_loss/ batch * gender.size(0), train_counter)
 
-        batch+=1
+        batch +=1
         train_counter += 1
 
     return running_loss / len(dataset)
@@ -61,22 +56,20 @@ def validation_step(rnn, criterion, device, dataloader, dataset, writer):
     running_loss = 0.0
     batch = 1
     with torch.no_grad():
-        for state, name, target in tqdm(dataloader, desc="val", unit="batch"):
-            state.to(device)
+        for gender, name in tqdm(dataloader, desc="val", unit="batch"):
+            gender.to(device)
             name.to(device)
-            target.to(device)
 
-            hidden = rnn.initHidden(state.size(0))
-            loss = 0
+            hidden = rnn.initHidden(gender.size(0))
 
             for i in range(name.size(1)):
-                output, hidden = rnn(state, name[:, i], hidden)
-                l = criterion(output.squeeze(1), target[:, i])
-                loss += l
-            running_loss += loss.item() * state.size(0)
+                output, hidden = rnn(name[:, i], hidden)
+            loss = criterion(output.squeeze(1), gender.squeeze(1))
+
+            running_loss += loss.item() * gender.size(0)
 
             if valid_counter % 100 == 0:
-                writer.add_scalar("Loss/train", running_loss / batch * state.size(0), train_counter)
+                writer.add_scalar("Loss/train", running_loss / batch * gender.size(0), train_counter)
 
             batch += 1
             valid_counter += 1
@@ -85,7 +78,7 @@ def validation_step(rnn, criterion, device, dataloader, dataset, writer):
 
 
 def main(args):
-    (args.model / "NGRNN").mkdir(parents=True, exist_ok=True)
+    (args.model / "GCRNN").mkdir(parents=True, exist_ok=True)
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
@@ -93,7 +86,7 @@ def main(args):
 
     criterion = nn.NLLLoss()
     df = preprocess(args.data)
-    dataset = RGDataset(df)
+    dataset = GCDataset(df)
 
     num_train = int(len(dataset)*0.7)
     num_val = len(dataset) - num_train
@@ -105,9 +98,9 @@ def main(args):
 
     n_letters = len(string.ascii_letters) + 1
 
-    rnn = RNN(n_letters, 128, n_letters, dataset.n_states())
+    rnn = GCRNN(n_letters, 128, 2)
 
-    optimizer = Adam(rnn.parameters(), lr=0.0005)
+    optimizer = Adam(rnn.parameters(), lr=1e-4)
 
     writer = SummaryWriter()
 
@@ -133,7 +126,7 @@ def main(args):
 
         print("val loss: {:.4f}".format(val_loss))
 
-        checkpoint = args.model / "NGRNN" / "checkpoint-{:05d}-of-{:05d}.pth".format(epoch + 1, args.num_epochs)
+        checkpoint = args.model / "GCRNN" / "checkpoint-{:05d}-of-{:05d}.pth".format(epoch + 1, args.num_epochs)
         states = {"epoch": epoch + 1, "state_dict": rnn.state_dict(), "optimizer": optimizer.state_dict()}
         torch.save(states, checkpoint)
 
